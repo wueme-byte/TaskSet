@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: todo_db
+      POSTGRES_USER: macbook
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5433:5432"
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://macbook:secret@db/todo_db
+    depends_on:
+      - db
+    restart: on-failure
