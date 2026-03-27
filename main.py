@@ -124,6 +124,26 @@ def get_todo(todo_id: int):
         return {"id": row[0], "title": row[1], "done": row[2]}
     return {"error": "Задача todo не найдена"}
 
+@app.put("/todos/{todo_id}")
+def update_todo(todo_id: int, todo: Todo, current_user: str = Depends(get_current_user)):
+    cursor.execute(
+        "UPDATE todos SET title = %s, done = %s WHERE id = %s RETURNING id",
+        (todo.title, todo.done, todo_id)
+    )
+    updated = cursor.fetchone()
+    conn.commit()
+    if updated:
+        return {"id": todo_id, "title": todo.title, "done": todo.done}
+    return {"error": "Задача todo не найдена"}
+
+@app.delete("/todos/{todo_id}")
+def delete_todo(todo_id: int, current_user: str = Depends(get_current_user)):
+    cursor.execute("DELETE FROM todos WHERE id = %s RETURNING id", (todo_id,))
+    deleted = cursor.fetchone()
+    conn.commit()
+    if deleted:
+        return {"message": "Задача удалена"}
+    return {"error": "Задача не найдена"}
 
 @app.post("/todos")
 def create_todo(todo: Todo, current_user: str = Depends(get_current_user)):  # теперь принимает только Todo
