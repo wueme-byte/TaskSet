@@ -181,20 +181,31 @@
     <p class="subtitle">Your personal task manager</p>
 
     <!-- Login -->
-    <div id="auth">
-        <div class="card">
-            <label>Username</label>
-            <input type="text" id="username" placeholder="Enter username">
-            <label>Password</label>
-            <input type="password" id="password" placeholder="Enter password">
-            <button class="btn-primary" onclick="login()">Sign in</button>
-            <p class="error" id="auth-error"></p>
+    <!-- Login / Register -->
+<div id="auth">
+    <div class="card">
+        <div id="form-title" style="font-size:18px; font-weight:600; margin-bottom:20px">Sign in</div>
+        
+        <label>Username</label>
+        <input type="text" id="username" placeholder="Enter username">
+        
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Enter password">
+        
+        <div id="confirm-block" style="display:none">
+            <label>Confirm password</label>
+            <input type="password" id="confirm-password" placeholder="Repeat password">
         </div>
-        <p style="text-align:center; color:#444; font-size:13px; margin-top:12px">
-            No account? 
-            <span onclick="register()" style="color:#fff; cursor:pointer; text-decoration:underline">Register</span>
-        </p>
+
+        <button class="btn-primary" id="main-btn" onclick="handleSubmit()">Sign in</button>
+        <p class="error" id="auth-error"></p>
     </div>
+
+    <p style="text-align:center; color:#444; font-size:13px; margin-top:12px" id="switch-text">
+        Don't have an account? 
+        <span id="switch-btn" onclick="switchMode()" style="color:#fff; cursor:pointer; text-decoration:underline">Register</span>
+    </p>
+</div>
 
     <!-- App -->
     <div id="app">
@@ -214,80 +225,107 @@
 </div>
 
 <script>
-    const API = '';
-    let token = localStorage.getItem('token');
-    let currentUser = localStorage.getItem('username');
 
-    if (token) showApp();
+const API = window.location.port === '5500' ? 'http://localhost:8000' : '';
+let token = localStorage.getItem('token');
+let currentUser = localStorage.getItem('username');
+let isRegisterMode = false;
 
-    async function login() {
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+if (token) showApp();
 
-        const res = await fetch(`${API}/token`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `username=${username}&password=${password}`
-        });
+function switchMode() {
+    isRegisterMode = !isRegisterMode;
+    document.getElementById('form-title').textContent = isRegisterMode ? 'Register' : 'Sign in';
+    document.getElementById('main-btn').textContent = isRegisterMode ? 'Register' : 'Sign in';
+    document.getElementById('confirm-block').style.display = isRegisterMode ? 'block' : 'none';
+    document.getElementById('auth-error').textContent = '';
+    document.getElementById('switch-text').innerHTML = isRegisterMode 
+        ? 'Already have an account? <span id="switch-btn" onclick="switchMode()" style="color:#fff; cursor:pointer; text-decoration:underline">Sign in</span>'
+        : 'Don\'t have an account? <span id="switch-btn" onclick="switchMode()" style="color:#fff; cursor:pointer; text-decoration:underline">Register</span>';
+}
 
-        if (res.ok) {
-            const data = await res.json();
-            token = data.access_token;
-            currentUser = username;
-            localStorage.setItem('token', token);
-            localStorage.setItem('username', username);
-            showApp();
-        } else {
-            document.getElementById('auth-error').textContent = 'Wrong username or password';
-        }
+function handleSubmit() {
+    if (isRegisterMode) {
+        register();
+    } else {
+        login();
+    }
+}
+
+async function login() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    const res = await fetch(`${API}/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `username=${username}&password=${password}`
+    });
+
+    if (res.ok) {
+        const data = await res.json();
+        token = data.access_token;
+        currentUser = username;
+        localStorage.setItem('token', token);
+        localStorage.setItem('username', username);
+        showApp();
+    } else {
+        document.getElementById('auth-error').textContent = 'Wrong username or password';
+    }
+}
+
+async function register() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm-password').value;
+
+    if (!username || !password) {
+        document.getElementById('auth-error').textContent = 'Enter username and password';
+        return;
     }
 
-    async function register() {
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-
-        if (!username || !password) {
-            document.getElementById('auth-error').textContent = 'Enter username and password';
-            return;
-        }
-
-        const res = await fetch(`${API}/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-
-        if (res.ok) {
-            await login();
-        } else {
-            document.getElementById('auth-error').textContent = 'Username already taken';
-        }
+    if (password !== confirm) {
+        document.getElementById('auth-error').textContent = 'Passwords do not match';
+        return;
     }
 
-    function logout() {
-        token = null;
-        localStorage.removeItem('token');
-        localStorage.removeItem('username');
-        document.getElementById('app').style.display = 'none';
-        document.getElementById('auth').style.display = 'block';
-    }
+    const res = await fetch(`${API}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    });
 
-    function showApp() {
-        document.getElementById('auth').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
-        document.getElementById('username-display').textContent = currentUser;
-        loadTodos();
+    if (res.ok) {
+        await login();
+    } else {
+        document.getElementById('auth-error').textContent = 'Username already taken';
     }
+}
 
-    async function loadTodos() {
-        const res = await fetch(`${API}/todos`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const todos = await res.json();
-        renderTodos(todos);
-    }
+function logout() {
+    token = null;
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('auth').style.display = 'block';
+}
 
-    function renderTodos(todos) {
+function showApp() {
+    document.getElementById('auth').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('username-display').textContent = currentUser;
+    loadTodos();
+}
+
+async function loadTodos() {
+    const res = await fetch(`${API}/todos`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const todos = await res.json();
+    renderTodos(todos);
+}
+
+function renderTodos(todos) {
     const list = document.getElementById('todo-list');
     if (todos.length === 0) {
         list.innerHTML = '<p style="color:#444; font-size:14px; padding:14px 0">No tasks yet. Add one!</p>';
@@ -304,25 +342,25 @@
     `).join('');
 }
 
-    async function addTodo() {
-        const input = document.getElementById('new-task');
-        const title = input.value.trim();
-        if (!title) return;
+async function addTodo() {
+    const input = document.getElementById('new-task');
+    const title = input.value.trim();
+    if (!title) return;
 
-        await fetch(`${API}/todos`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ title, done: false })
-        });
+    await fetch(`${API}/todos`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title, done: false })
+    });
 
-        input.value = '';
-        loadTodos();
-    }
+    input.value = '';
+    loadTodos();
+}
 
-    async function toggleTodo(el) {
+async function toggleTodo(el) {
     const item = el.closest('.todo-item');
     const id = item.dataset.id;
     const done = item.dataset.done === 'true';
@@ -347,7 +385,7 @@ async function deleteTodo(el) {
     });
     loadTodos();
 }
-     
+
 </script>
 </body>
 </html>
