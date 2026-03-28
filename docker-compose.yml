@@ -10,10 +10,18 @@ services:
 
   api:
     build: .
-    ports:
-      - "8000:8000"
     environment:
       DATABASE_URL: postgresql://macbook:secret@db/todo_db
     depends_on:
       - db
     restart: on-failure
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./index.html:/usr/share/nginx/html/index.html
+    depends_on:
+      - api
