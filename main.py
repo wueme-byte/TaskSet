@@ -40,7 +40,8 @@ cursor.execute("""
     CREATE TABLE IF NOT EXISTS todos (
         id SERIAL PRIMARY KEY,
         title VARCHAR(200) NOT NULL,
-        done BOOLEAN DEFAULT FALSE
+        done BOOLEAN DEFAULT FALSE,
+        username VARCHAR(50)       
     )
 """)
 conn.commit()
@@ -119,19 +120,12 @@ def token(form: OAuth2PasswordRequestForm = Depends()):
 
 
 # задачи - только для авторизованых пользователей
+
 @app.get("/todos")
 def get_todos(current_user: str = Depends(get_current_user)):
-    cursor.execute("SELECT id, title, done FROM todos")
+    cursor.execute("SELECT id, title, done FROM todos WHERE username = %s", (current_user,))
     rows = cursor.fetchall()
     return [{"id": row[0], "title": row[1], "done": row[2]} for row in rows]
-
-@app.get("/todos/{todo_id}")
-def get_todo(todo_id: int):
-    cursor.execute("SELECT id, title, done FROM todos WHERE id = %s", (todo_id,))
-    row = cursor.fetchone()
-    if row:
-        return {"id": row[0], "title": row[1], "done": row[2]}
-    return {"error": "Задача todo не найдена"}
 
 @app.put("/todos/{todo_id}")
 def update_todo(todo_id: int, todo: Todo, current_user: str = Depends(get_current_user)):
@@ -157,8 +151,8 @@ def delete_todo(todo_id: int, current_user: str = Depends(get_current_user)):
 @app.post("/todos")
 def create_todo(todo: Todo, current_user: str = Depends(get_current_user)):  # теперь принимает только Todo
     cursor.execute(
-        "INSERT INTO todos (title, done) VALUES (%s, %s) RETURNING id",
-        (todo.title, todo.done)
+        "INSERT INTO todos (title, done, username) VALUES (%s, %s, %s) RETURNING id",
+        (todo.title, todo.done, current_user)
      )
     new_id = cursor.fetchone()[0]
     conn.commit()
