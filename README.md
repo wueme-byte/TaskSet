@@ -1,29 +1,54 @@
 # TaskSet API
 
-REST API for task management with authentication.
+A full-stack task management app with authentication, built with FastAPI and deployed on DigitalOcean.
+
+## Live Demo
+
+- **App**: http://178.62.200.90
+- **API Docs**: http://178.62.200.90:8000/docs
 
 ## Tech Stack
 
-- **FastAPI** — web framework
-- **PostgreSQL** — database
-- **JWT** — authentication
-- **Docker** — containerization
+**Backend:**
+- FastAPI — web framework
+- PostgreSQL — database
+- JWT — authentication
+- Pydantic — data validation
+- Bcrypt — password hashing
+
+**Infrastructure:**
+- Docker + docker-compose
+- Nginx — reverse proxy & static files
+- DigitalOcean — cloud hosting
+
+**Frontend:**
+- HTML / CSS / JavaScript
+
+## Features
+
+- User registration with password confirmation
+- JWT authentication — stay logged in between sessions
+- Create, read, update and delete tasks
+- Tasks are private — each user sees only their own
+- Responsive dark UI
 
 ## Getting Started
 ```bash
+git clone https://github.com/wueme-byte/TaskSet.git
+cd TaskSet
 docker-compose up --build
 ```
 
-API will be available at `http://localhost:8000`
+App will be available at `http://localhost`
+API docs at `http://localhost:8000/docs`
 
-Swagger docs: `http://localhost:8000/docs`
+## API Endpoints
 
-## Endpoints
-
-| Method | URL | Description |
-|--------|-----|-------------|
-| POST | /register | Register new user |
-| POST | /login | Login, returns JWT token |
-| GET | /todos | Get all tasks |
-| POST | /todos | Create new task |
-| GET | /todos/{id} | Get task by id |
+| Method | URL | Auth | Description |
+|--------|-----|------|-------------|
+| POST | /register | No | Register new user |
+| POST | /login | No | Login, returns JWT token |
+| GET | /todos | Yes | Get all user's tasks |
+| POST | /todos | Yes | Create new task |
+| PUT | /todos/{id} | Yes | Update task |
+| DELETE | /todos/{id} | Yes | Delete task |
